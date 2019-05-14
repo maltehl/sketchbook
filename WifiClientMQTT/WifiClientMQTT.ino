@@ -100,9 +100,7 @@ void setup() {
 int value = 0;
 
 TSL2561 tsl(TSL2561_ADDR_FLOAT); 
-
 Adafruit_BMP085 pressure;
-//SFE_BMP180 pressure;
 SI7021 sensorLuftfeuchte;
 Adafruit_MPR121 cap = Adafruit_MPR121();
 
@@ -115,7 +113,10 @@ void loop() {
   double T = 0.0;
   double P = 0.0;
   
-
+  int cap_init = false;
+  int pressure_init = false;
+  int luftfeuchte_init = false;
+  int light_init = false;
   float C[13];
 
   ++value;
@@ -125,6 +126,46 @@ void loop() {
 
   const int httpPort = 80;
 
+  if (!cap.begin(0x5A)) {
+    DEBUG_PRINT("MPR121 not found, check wiring?");
+	cap_init = false;
+  }
+  else
+ {
+	cap_init = true;
+ }
+ 
+   if(pressure.begin()==false)
+  {
+	pressure_init = false;
+  }
+  else
+  {
+	pressure_init = true;
+  }
+  
+  if(sensorLuftfeuchte.begin(0,2)==false)
+  {
+	luftfeuchte_init = false;
+  }
+  else
+  {
+	luftfeuchte_init = true;
+  }
+  
+  if(tsl.begin() == false)
+  {
+	light_init = false;
+  }
+  else
+  {
+	tsl.setGain(TSL2561_GAIN_16X);      // set 16x gain (for dim situations)
+    tsl.setTiming(TSL2561_INTEGRATIONTIME_402MS); 
+	light_init = true;
+  }
+  
+  
+  
   StaticJsonBuffer<200> jsonBuffer;
   StaticJsonBuffer<900> jsonBuffer2;
   JsonObject& root = jsonBuffer.createObject();
@@ -187,107 +228,108 @@ void loop() {
   sprintf(Message,"%ld",WiFi.RSSI());
   root["rssi"] = WiFi.RSSI();
   mqttClient.publish(TotalTopic,Message);
-  pressure.begin();
-  delay(100);
-  
-  P = pressure.readPressure();
-  T = pressure.readTemperature();
 
+  //delay(100);
   sensors["state"] = "OK";
-  JsonObject& PressureSensor = sensors.createNestedObject("BMP180");
-  String value, value2;
-  value += T;
-  PressureSensor["Temperature"] = value;
-  value2 += P;
-  PressureSensor["Pressure"] = value2;
+   
+  if(pressure_init == true)
+  {  	
+	  P = pressure.readPressure();
+	  T = pressure.readTemperature();
 
-  sensorLuftfeuchte.begin(0,2);
-  si7021_env dataLuft;
-  dataLuft = sensorLuftfeuchte.getHumidityAndTemperature();
-  
-  JsonObject& HumiditySensor = sensors.createNestedObject("SI7021");
-  HumiditySensor["Temperature"] = ((float)dataLuft.celsiusHundredths)/100;
-  HumiditySensor["Humidity"] = ((float)dataLuft.humidityBasisPoints)/100;
-
-  tsl.begin();
-  tsl.setGain(TSL2561_GAIN_16X);      // set 16x gain (for dim situations)
-  tsl.setTiming(TSL2561_INTEGRATIONTIME_402MS); 
-  uint32_t lum = tsl.getFullLuminosity();
-  uint16_t ir, full;
-  ir = lum >> 16;
-  full = lum & 0xFFFF;
-  delay(400);
-  JsonObject& LightSensor = sensors.createNestedObject("TSL2561");
-  LightSensor["Infrared"] = ir;
-  LightSensor["Full"] = full;
-  LightSensor["Visible"] = (full - ir);
-  LightSensor["LUX"] = tsl.calculateLux(full, ir);
-
-
-  char ProbeCount = 10;
-
-  JsonObject& CapSensor = sensors.createNestedObject("MPR121");
-  //Bodenfeuchte messen
-  {
-     int j;
-       for(j=0;j<ProbeCount;j++)
-       {
-         C[j] = 0.0;
-       }
-       DEBUG_PRINT("cap");
-       if (!cap.begin(0x5A)) {
-            DEBUG_PRINT("MPR121 not found, check wiring?");
-            
-       }
-       else
-       {
-        delay(500);
-        int i;
-        int count = 0;
-        for(i=0;i<10;i++)
-        {
-              delay(10);
-              for(j=0;j<ProbeCount;j++)
-              {
-                  C[j] += cap.getCapacity(j);
-              }
-            count ++;
-        }
-        for(j=0;j<ProbeCount;j++)
-        {
-           float value = C[j] / count;
-           C[j] = value;
-        }
-      }
-      for(j=0;j<ProbeCount;j++)
-      {
-        String VName = "Probe";
-        VName += j;
-        CapSensor[VName] = C[j]; 
-      }
+	 
+	  JsonObject& PressureSensor = sensors.createNestedObject("BMP180");
+	  String value, value2;
+	  value += T;
+	  PressureSensor["Temperature"] = value;
+	  value2 += P;
+	  PressureSensor["Pressure"] = value2;
   }
-  DEBUG_PRINT("C1: ");
-  DEBUG_PRINT(C[0]);
-  DEBUG_PRINT("C2: ");
-  DEBUG_PRINT(C[1]);
-  DEBUG_PRINT("C3: ");
-  DEBUG_PRINT(C[2]);
   
-  while (!mqttClient.connected()) {
-  if (mqttClient.connect("sensor_1")) {
-      Serial.println("connected");
-      // Once connected, publish an announcement...
-      sprintf(TotalTopic,"%s/%s",mqtt_topic,"state");
-      mqttClient.publish(TotalTopic,"hello world");
-      // ... and resubscribe
-      //mqttClient.subscribe("inTopic");
-    } else {
-      Serial.print("failed, rc=");
-      Serial.print(mqttClient.state());
-      Serial.println(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
-      delay(5000);
-    }
+  if(luftfeuchte_init == true)
+  {
+	  si7021_env dataLuft;
+	  dataLuft = sensorLuftfeuchte.getHumidityAndTemperature();
+	  
+	  JsonObject& HumiditySensor = sensors.createNestedObject("SI7021");
+	  HumiditySensor["Temperature"] = ((float)dataLuft.celsiusHundredths)/100;
+	  HumiditySensor["Humidity"] = ((float)dataLuft.humidityBasisPoints)/100;
+  }
+  
+  if(light_init == true)
+  {
+	  uint32_t lum = tsl.getFullLuminosity();
+	  uint16_t ir, full;
+	  ir = lum >> 16;
+	  full = lum & 0xFFFF;
+	  delay(400);
+	  JsonObject& LightSensor = sensors.createNestedObject("TSL2561");
+	  LightSensor["Infrared"] = ir;
+	  LightSensor["Full"] = full;
+	  LightSensor["Visible"] = (full - ir);
+	  LightSensor["LUX"] = tsl.calculateLux(full, ir);
+  }
+
+  if(cap_init ==true)
+  {
+	  char ProbeCount = 10;
+
+	  JsonObject& CapSensor = sensors.createNestedObject("MPR121");
+	  //Bodenfeuchte messen
+	  {
+		 int j;
+		   for(j=0;j<ProbeCount;j++)
+		   {
+				C[j] = 0.0;
+		   }
+		   DEBUG_PRINT("cap");
+		   
+			int i;
+			int count = 0;
+			for(i=0;i<10;i++)
+			{
+				delay(10);
+				for(j=0;j<ProbeCount;j++)
+				{
+					C[j] += cap.getCapacity(j);
+				}
+				count ++;
+			}
+			for(j=0;j<ProbeCount;j++)
+			{
+				float value = C[j] / count;
+				C[j] = value;
+			}
+			for(j=0;j<ProbeCount;j++)
+			{
+				String VName = "Probe";
+				VName += j;
+				CapSensor[VName] = C[j]; 
+			}
+	  }
+	  DEBUG_PRINT("C1: ");
+	  DEBUG_PRINT(C[0]);
+	  DEBUG_PRINT("C2: ");
+	  DEBUG_PRINT(C[1]);
+	  DEBUG_PRINT("C3: ");
+	  DEBUG_PRINT(C[2]);
+	  
+	  while (!mqttClient.connected()) {
+	  if (mqttClient.connect("sensor_1")) {
+		  Serial.println("connected");
+		  // Once connected, publish an announcement...
+		  sprintf(TotalTopic,"%s/%s",mqtt_topic,"state");
+		  mqttClient.publish(TotalTopic,"hello world");
+		  // ... and resubscribe
+		  //mqttClient.subscribe("inTopic");
+		} else {
+		  Serial.print("failed, rc=");
+		  Serial.print(mqttClient.state());
+		  Serial.println(" try again in 5 seconds");
+		  // Wait 5 seconds before retrying
+		  delay(5000);
+		}
+	  }
   }
   char JsonString[300];
   sensors.printTo(JsonString,sizeof(JsonString));
