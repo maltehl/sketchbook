@@ -34,7 +34,7 @@
 #define WAKEUPINTERVALLONG  3 
 #define WAKEUPINTERVALONERROR  3 
 
-unsigned int uiWakenterval = WAKEUPINTERVALLONG;
+unsigned int uiWakenterval = WAKEUPINTERVALSHORT;
 
 extern "C" {
 #include "user_interface.h"
