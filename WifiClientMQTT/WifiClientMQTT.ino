@@ -331,7 +331,7 @@ void loop() {
 		}
 	  }
   }
-  char JsonString[300];
+  char JsonString[500];
   sensors.printTo(JsonString,sizeof(JsonString));
   Serial.print(JsonString);
 
@@ -339,7 +339,7 @@ void loop() {
   mqttClient.publish(TotalTopic,JsonString);
 
   mqttClient.loop();
- 
+  delay(500);
   RtcDateTime now = Rtc.GetDateTime();  
   
 

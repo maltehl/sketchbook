@@ -155,12 +155,12 @@ float  Adafruit_MPR121::getCapacity(int id) {
   uint8_t T = readRegister8(MPR121_CHARGETIME_0 + (id/2));
   uint8_t I = readRegister8(MPR121_CHARGECURR_0 + id);
  
-  Serial.print("id = ");
+  /*Serial.print("id = ");
   Serial.print(id);
   Serial.print("\t T=");
   Serial.print(T , HEX);
   Serial.print("\t I=");
-  Serial.print(I , HEX); 
+  Serial.print(I , HEX);*/
   if((id+1)%2)
   {
 	T = T & 0b00000111;
@@ -174,7 +174,7 @@ float  Adafruit_MPR121::getCapacity(int id) {
   
   float time = pow(2 , T) / 4.0;
   float current = (float) I;
-  Serial.print("\t ADC=");
+ /* Serial.print("\t ADC=");
   Serial.print(ADC, HEX);
   Serial.print("\t T=");
   Serial.print(T , HEX);
@@ -183,9 +183,9 @@ float  Adafruit_MPR121::getCapacity(int id) {
   Serial.print("\t time=");
   Serial.print(time);
   Serial.print("\t current=");
-  Serial.print(current);
+  Serial.print(current);*/
   float c = (current * time *1024.0) /(3.3 * (float)ADC);
-  Serial.print("\t c=");
-  Serial.println(c);
+  //Serial.print("\t c=");
+  //Serial.println(c);
   return c;
 }
