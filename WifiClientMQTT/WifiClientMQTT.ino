@@ -83,6 +83,9 @@ void GoToSleep(int minutes);
 
 
 ADC_MODE(ADC_VCC);
+
+int ccs_init = false;
+Adafruit_CCS811 ccs;                    //0x5B -> PIN ADDR set to HIGH!!
 void setup() {
   INIT_DEBUG_PRINT();
 
@@ -92,6 +95,14 @@ void setup() {
   DEBUG_PRINT("Start Wifi");
 
   
+  if(!ccs.begin(0x5B)){
+    DEBUG_PRINT("CCS811 not found, check wiring?");
+    ccs_init = false;
+  }
+  else
+  {
+    ccs_init = true;
+  }
   
   if(0==setupWifi())
   {
@@ -112,7 +123,7 @@ TSL2561 tsl(TSL2561_ADDR_FLOAT);        //0x39
 Adafruit_BMP085 pressure;               //0x77
 SI7021 sensorLuftfeuchte;               //0x40
 Adafruit_MPR121 cap = Adafruit_MPR121();//0x5A
-Adafruit_CCS811 ccs;                    //0x5B -> PIN ADDR set to HIGH!!
+
 
 
 void loop() {
@@ -127,7 +138,7 @@ void loop() {
   int pressure_init = false;
   int luftfeuchte_init = false;
   int light_init = false;
-  int ccs_init = false;
+  
   float C[13];
 
   ++value;
@@ -175,13 +186,6 @@ void loop() {
 	  light_init = true;
   }
 
-  if(!ccs.begin(0x5B)){
-    ccs_init = false;
-  }
-  else
-  {
-    ccs_init = true;
-  }
   
   
   
@@ -230,8 +234,8 @@ void loop() {
   }
   
   sprintf(TotalTopic,"%s/%s",mqtt_topic,"voltage");
-  sprintf(Message,"%3.2f",vdd/5);
-  root["voltage"] = vdd;
+  dtostrf(vdd/5, 4, 3, Message);
+  root["voltage"] = vdd/5;
   mqttClient.publish(TotalTopic,Message);
 
 //WiFi.macAddress()
@@ -278,29 +282,39 @@ void loop() {
 	  HumiditySensor["Humidity"] = ((float)dataLuft.humidityBasisPoints)/100;
     if(ccs_init == true)
     {
+      DEBUG_PRINT("Set CCS Temp by extern sensor");
       while(!ccs.available());
       float temp = ((float)dataLuft.celsiusHundredths)/100;
       uint8_t humidity = dataLuft.humidityBasisPoints/100;
-      ccs.setEnvironmentalData(humidity,temp);
+      DEBUG_PRINT(temp);
+      DEBUG_PRINT("<Temp Hum>");
+      DEBUG_PRINT(humidity);
+
+      ccs.setEnvironmentalData(50,23.5);
     }
   }
 
   if(ccs_init==true)
   {
-    if(luftfeuchte_init == true)
-    {
-      while(!ccs.available());
-      float temp = ccs.calculateTemperature();
-      ccs.setTempOffset(temp - 25.0);
-    }
+    while(!ccs.available());
+    DEBUG_PRINT("Read Data CO2 ");
+    JsonObject& COSensor = sensors.createNestedObject("CCS811");
     if(!ccs.readData())
     {
-      JsonObject& COSensor = sensors.createNestedObject("CCS811");
+      while(ccs.getTVOC() == 0){
+        delay(250);
+        ccs.readData();
+        DEBUG_PRINT(".");
+        }
       COSensor["CO2"] = ccs.geteCO2();
+      DEBUG_PRINT(ccs.geteCO2());
+      DEBUG_PRINT("Read Data TVOC");
       COSensor["TVOC"] = ccs.getTVOC();
-      COSensor["Temperature"] = ccs.calculateTemperature();
+      DEBUG_PRINT(ccs.getTVOC());
     }
-    
+    else{
+      DEBUG_PRINT("Read CCS811 Error ");
+    }
   }
   
   if(light_init == true)
@@ -350,8 +364,11 @@ void loop() {
 			for(j=0;j<ProbeCount;j++)
 			{
 				String VName = "Probe";
+        char value[10];
+        dtostrf(C[j], 4, 3, value);
+        //sprintf(value,"%2.3f",C[j]);
 				VName += j;
-				CapSensor[VName] = C[j]; 
+				CapSensor[VName] = value; 
 			}
 	  }
 
@@ -388,7 +405,8 @@ void loop() {
   mqttClient.publish(TotalTopic,JsonString);
 
   mqttClient.loop();
-
+  mqttClient.loop();
+  
   RtcDateTime now = Rtc.GetDateTime();  
   
 
