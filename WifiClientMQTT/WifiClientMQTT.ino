@@ -54,20 +54,28 @@ int cmpfunc (const void * a, const void * b)
    return ( *(int*)a - *(int*)b );
 }
 
-void callback(char* topic, byte* payload, unsigned int length) {
-  Serial.print("Message arrived [");
-  Serial.print(topic);
-  Serial.print("] ");
-  for (int i=0;i<length;i++) {
-    Serial.print((char)payload[i]);
-  }
-  Serial.println();
-}
-
 void macToStr(const uint8_t* ar, char* macAdr)
 {
   sprintf(macAdr, "%2X:%2X:%2X:%2X:%2X:%2X", ar[0], ar[1], ar[2], ar[3], ar[4], ar[5]);
 
+}
+
+void callback(char* topic, byte* payload, unsigned int length) {
+  int value = 0;
+
+  Serial.print("callback1\t");
+  Serial.print("Message arrived [");
+  Serial.print(topic);
+  Serial.print("] ");
+  for (int i = 0; i < length; i++) {
+    Serial.print((char)payload[i]);
+  }
+
+  payload[length] = 0;
+  value = atoi((char*)payload);
+  Serial.print("Wert: \t");
+  Serial.print(value);  
+  Serial.println();
 }
 
 void GoToSleep(int minutes);
@@ -191,6 +199,9 @@ void loop() {
       delay(5000);
     }
   }
+  sprintf(TotalTopic,"%s/%s",mqtt_topic,"delay");
+  mqttClient.subscribe(TotalTopic);
+  
   // pinMode(A0, INPUT);
 
  float vdd = 0.0;
@@ -339,7 +350,7 @@ void loop() {
   mqttClient.publish(TotalTopic,JsonString);
 
   mqttClient.loop();
-  delay(500);
+
   RtcDateTime now = Rtc.GetDateTime();  
   
 
