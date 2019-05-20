@@ -19,7 +19,8 @@
 //#include "SFE_BMP180.h"
 #include "SI7021.h"
 #include "Adafruit_MPR121.h"
-#include <Adafruit_BMP085.h>
+#include "Adafruit_BMP085.h"
+#include "Adafruit_CCS811.h"
 
 
 
@@ -41,7 +42,7 @@ extern "C" {
 int readvdd33(void);
 }
 
-//MAX6675 thermocouple(thermoCLK, thermoCS, thermoDO);
+
 RtcDS3231 Rtc;
 String response;
 int resultCode;
@@ -107,10 +108,11 @@ void setup() {
 
 int value = 0;
 
-TSL2561 tsl(TSL2561_ADDR_FLOAT); 
-Adafruit_BMP085 pressure;
-SI7021 sensorLuftfeuchte;
-Adafruit_MPR121 cap = Adafruit_MPR121();
+TSL2561 tsl(TSL2561_ADDR_FLOAT);        //0x39
+Adafruit_BMP085 pressure;               //0x77
+SI7021 sensorLuftfeuchte;               //0x40
+Adafruit_MPR121 cap = Adafruit_MPR121();//0x5A
+Adafruit_CCS811 ccs;                    //0x5B -> PIN ADDR set to HIGH!!
 
 
 void loop() {
@@ -125,6 +127,7 @@ void loop() {
   int pressure_init = false;
   int luftfeuchte_init = false;
   int light_init = false;
+  int ccs_init = false;
   float C[13];
 
   ++value;
@@ -145,31 +148,39 @@ void loop() {
  
    if(pressure.begin()==false)
   {
-	pressure_init = false;
+	  pressure_init = false;
   }
   else
   {
-	pressure_init = true;
+	  pressure_init = true;
   }
   
   if(sensorLuftfeuchte.begin(0,2)==false)
   {
-	luftfeuchte_init = false;
+	  luftfeuchte_init = false;
   }
   else
   {
-	luftfeuchte_init = true;
+	  luftfeuchte_init = true;
   }
   
   if(tsl.begin() == false)
   {
-	light_init = false;
+	  light_init = false;
   }
   else
   {
-	tsl.setGain(TSL2561_GAIN_16X);      // set 16x gain (for dim situations)
+	  tsl.setGain(TSL2561_GAIN_16X);      // set 16x gain (for dim situations)
     tsl.setTiming(TSL2561_INTEGRATIONTIME_402MS); 
-	light_init = true;
+	  light_init = true;
+  }
+
+  if(!ccs.begin(0x5B)){
+    ccs_init = false;
+  }
+  else
+  {
+    ccs_init = true;
   }
   
   
@@ -265,6 +276,31 @@ void loop() {
 	  JsonObject& HumiditySensor = sensors.createNestedObject("SI7021");
 	  HumiditySensor["Temperature"] = ((float)dataLuft.celsiusHundredths)/100;
 	  HumiditySensor["Humidity"] = ((float)dataLuft.humidityBasisPoints)/100;
+    if(ccs_init == true)
+    {
+      while(!ccs.available());
+      float temp = ((float)dataLuft.celsiusHundredths)/100;
+      uint8_t humidity = dataLuft.humidityBasisPoints/100;
+      ccs.setEnvironmentalData(humidity,temp);
+    }
+  }
+
+  if(ccs_init==true)
+  {
+    if(luftfeuchte_init == true)
+    {
+      while(!ccs.available());
+      float temp = ccs.calculateTemperature();
+      ccs.setTempOffset(temp - 25.0);
+    }
+    if(!ccs.readData())
+    {
+      JsonObject& COSensor = sensors.createNestedObject("CCS811");
+      COSensor["CO2"] = ccs.geteCO2();
+      COSensor["TVOC"] = ccs.getTVOC();
+      COSensor["Temperature"] = ccs.calculateTemperature();
+    }
+    
   }
   
   if(light_init == true)
@@ -318,6 +354,8 @@ void loop() {
 				CapSensor[VName] = C[j]; 
 			}
 	  }
+
+   
 	  DEBUG_PRINT("C1: ");
 	  DEBUG_PRINT(C[0]);
 	  DEBUG_PRINT("C2: ");
