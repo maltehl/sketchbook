@@ -195,6 +195,8 @@ void loop() {
   JsonObject& sensors = jsonBuffer2.createObject();
   mqttClient.setServer(speak_server, 1883);
   mqttClient.setCallback(callback);
+  
+  
   while (!mqttClient.connected()) {
 	if (mqttClient.connect("sensor_1")) 
 	{
@@ -203,7 +205,9 @@ void loop() {
       sprintf(TotalTopic,"%s/%s",mqtt_topic,"state");
       mqttClient.publish(TotalTopic,"hello world");
       // ... and resubscribe
-      //mqttClient.subscribe("inTopic");
+      sprintf(TotalTopic,"%s/%s","Delay","delay");
+      Serial.println(TotalTopic);
+      mqttClient.subscribe(TotalTopic);
     } 
 	else 
 	{
@@ -214,8 +218,7 @@ void loop() {
       delay(5000);
     }
   }
-  sprintf(TotalTopic,"%s/%s",mqtt_topic,"delay");
-  mqttClient.subscribe(TotalTopic);
+  
   
   // pinMode(A0, INPUT);
 
@@ -372,14 +375,6 @@ void loop() {
 			}
 	  }
 
-   
-	  DEBUG_PRINT("C1: ");
-	  DEBUG_PRINT(C[0]);
-	  DEBUG_PRINT("C2: ");
-	  DEBUG_PRINT(C[1]);
-	  DEBUG_PRINT("C3: ");
-	  DEBUG_PRINT(C[2]);
-	  
 	  while (!mqttClient.connected()) {
 	  if (mqttClient.connect("sensor_1")) {
 		  Serial.println("connected");
@@ -406,6 +401,7 @@ void loop() {
 
   mqttClient.loop();
   mqttClient.loop();
+  delay(100);
   
   RtcDateTime now = Rtc.GetDateTime();  
   
