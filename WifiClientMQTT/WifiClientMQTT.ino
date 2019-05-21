@@ -85,7 +85,18 @@ void GoToSleep(int minutes);
 ADC_MODE(ADC_VCC);
 
 int ccs_init = false;
+int cap_init = false;
+int pressure_init = false;
+int luftfeuchte_init = false;
+int light_init = false;
+
+TSL2561 tsl(TSL2561_ADDR_FLOAT);        //0x39
+Adafruit_BMP085 pressure;               //0x77
+SI7021 sensorLuftfeuchte;               //0x40
+Adafruit_MPR121 cap = Adafruit_MPR121();//0x5A
 Adafruit_CCS811 ccs;                    //0x5B -> PIN ADDR set to HIGH!!
+
+
 void setup() {
   INIT_DEBUG_PRINT();
 
@@ -103,6 +114,43 @@ void setup() {
   {
     ccs_init = true;
   }
+  if (!cap.begin(0x5A)) {
+    DEBUG_PRINT("MPR121 not found, check wiring?");
+  cap_init = false;
+  }
+  else
+ {
+  cap_init = true;
+ }
+ 
+   if(pressure.begin()==false)
+  {
+    pressure_init = false;
+  }
+  else
+  {
+    pressure_init = true;
+  }
+  
+  if(sensorLuftfeuchte.begin(0,2)==false)
+  {
+    luftfeuchte_init = false;
+  }
+  else
+  {
+    luftfeuchte_init = true;
+  }
+  
+  if(tsl.begin() == false)
+  {
+    light_init = false;
+  }
+  else
+  {
+    tsl.setGain(TSL2561_GAIN_16X);      // set 16x gain (for dim situations)
+    tsl.setTiming(TSL2561_INTEGRATIONTIME_402MS); 
+    light_init = true;
+  }
   
   if(0==setupWifi())
   {
@@ -119,10 +167,7 @@ void setup() {
 
 int value = 0;
 
-TSL2561 tsl(TSL2561_ADDR_FLOAT);        //0x39
-Adafruit_BMP085 pressure;               //0x77
-SI7021 sensorLuftfeuchte;               //0x40
-Adafruit_MPR121 cap = Adafruit_MPR121();//0x5A
+
 
 
 
@@ -134,11 +179,6 @@ void loop() {
   double T = 0.0;
   double P = 0.0;
   
-  int cap_init = false;
-  int pressure_init = false;
-  int luftfeuchte_init = false;
-  int light_init = false;
-  
   float C[13];
 
   ++value;
@@ -148,46 +188,6 @@ void loop() {
 
   const int httpPort = 80;
 
-  if (!cap.begin(0x5A)) {
-    DEBUG_PRINT("MPR121 not found, check wiring?");
-	cap_init = false;
-  }
-  else
- {
-	cap_init = true;
- }
- 
-   if(pressure.begin()==false)
-  {
-	  pressure_init = false;
-  }
-  else
-  {
-	  pressure_init = true;
-  }
-  
-  if(sensorLuftfeuchte.begin(0,2)==false)
-  {
-	  luftfeuchte_init = false;
-  }
-  else
-  {
-	  luftfeuchte_init = true;
-  }
-  
-  if(tsl.begin() == false)
-  {
-	  light_init = false;
-  }
-  else
-  {
-	  tsl.setGain(TSL2561_GAIN_16X);      // set 16x gain (for dim situations)
-    tsl.setTiming(TSL2561_INTEGRATIONTIME_402MS); 
-	  light_init = true;
-  }
-
-  
-  
   
   StaticJsonBuffer<200> jsonBuffer;
   StaticJsonBuffer<900> jsonBuffer2;
@@ -293,7 +293,7 @@ void loop() {
       DEBUG_PRINT("<Temp Hum>");
       DEBUG_PRINT(humidity);
 
-      ccs.setEnvironmentalData(50,23.5);
+      ccs.setEnvironmentalData(humidity,temp);
     }
   }
 
@@ -302,13 +302,16 @@ void loop() {
     while(!ccs.available());
     DEBUG_PRINT("Read Data CO2 ");
     JsonObject& COSensor = sensors.createNestedObject("CCS811");
+    unsigned long StartTime = millis();
+    
     if(!ccs.readData())
     {
-      while(ccs.getTVOC() == 0){
+      while(ccs.getTVOC() == 0 && ccs.geteCO2() == 400 && ((StartTime - millis())<4000) ){
         delay(250);
         ccs.readData();
         DEBUG_PRINT(".");
-        }
+        
+      }
       COSensor["CO2"] = ccs.geteCO2();
       DEBUG_PRINT(ccs.geteCO2());
       DEBUG_PRINT("Read Data TVOC");
