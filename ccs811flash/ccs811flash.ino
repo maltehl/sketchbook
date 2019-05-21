@@ -13,7 +13,7 @@
 
 
 // Wiring for ESP8266 NodeMCU boards: VDD to 3V3, GND to GND, SDA to D2, SCL to D1, nWAKE to D3 (or GND)
-CCS811 ccs811(-1,CCS811_SLAVEADDR_0); // nWAKE on D3
+CCS811 ccs811(-1,CCS811_SLAVEADDR_1); // nWAKE on D3
 
 // Wiring for Nano: VDD to 3v3, GND to GND, SDA to A4, SCL to A5, nWAKE to 13
 //CCS811 ccs811(13); 
@@ -30,7 +30,7 @@ void setup() {
   Serial.print("setup: library     version: "); Serial.println(CCS811_VERSION);
 
   // Enable I2C
-  Wire.begin(); 
+  Wire.begin(0,2); 
   
   // Enable CCS811
   ccs811.set_i2cdelay(50); // Needed for ESP8266 because it doesn't handle I2C clock stretch correctly
@@ -44,7 +44,7 @@ void setup() {
 
   // Check if flashing should be executed
   if( ccs811.application_version()==0x2000 ) { Serial.println("init: already has 2.0.0"); return; } // Do not reflash
-  Serial.println("setup: comment-out this code line if you want to flash"); return; // Extra precaution
+  //Serial.println("setup: comment-out this code line if you want to flash"); return; // Extra precaution
 
   // Flash
   Serial.print("setup: starting flash of '");

@@ -48,7 +48,7 @@ int resultCode;
 void callback(char* topic, byte* payload, unsigned int length);
 
 WiFiClient client;
-PubSubClient mqttClient(speak_server,1883,callback,client);
+PubSubClient mqttClient(client);
 
 int cmpfunc (const void * a, const void * b)
 {
@@ -63,7 +63,7 @@ void macToStr(const uint8_t* ar, char* macAdr)
 
 void callback(char* topic, byte* payload, unsigned int length) {
   int value = 0;
-
+  Serial.println("");
   Serial.print("callback1\t");
   Serial.print("Message arrived [");
   Serial.print(topic);
@@ -74,6 +74,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   payload[length] = 0;
   value = atoi((char*)payload);
+  uiWakenterval = value;
   Serial.print("Wert: \t");
   Serial.print(value);  
   Serial.println();
@@ -189,8 +190,8 @@ void loop() {
   StaticJsonBuffer<900> jsonBuffer2;
   JsonObject& root = jsonBuffer.createObject();
   JsonObject& sensors = jsonBuffer2.createObject();
-  //mqttClient.setServer(speak_server, 1883);
-  //mqttClient.setCallback(callback);
+  mqttClient.setServer(speak_server, 1883);
+  mqttClient.setCallback(callback);
   
   
   while (!mqttClient.connected()) {
@@ -201,7 +202,7 @@ void loop() {
       sprintf(TotalTopic,"%s/%s",mqtt_topic,"state");
       mqttClient.publish(TotalTopic,"hello world");
       // ... and resubscribe
-      sprintf(TotalTopic,"%s/%s","Delay","delay/#");
+      sprintf(TotalTopic,"%s/%s","Delay","#");
       Serial.println(TotalTopic);
       mqttClient.subscribe(TotalTopic);
       mqttClient.loop();
