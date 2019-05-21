@@ -29,6 +29,9 @@
 
 #define MPR121_TOUCHSTATUS_L 0x00
 #define MPR121_TOUCHSTATUS_H 0x01
+#define MPR121_OUTOFRANGE_1 0x02
+#define MPR121_OUTOFRANGE_2 0x03
+
 #define MPR121_FILTDATA_0L  0x04
 #define MPR121_FILTDATA_0H  0x05
 #define MPR121_BASELINE_0   0x1E
@@ -83,6 +86,7 @@ class Adafruit_MPR121 {
   uint16_t readRegister16(uint8_t reg);
   void writeRegister(uint8_t reg, uint8_t value);
   uint16_t touched(void);
+  uint16_t finishedAutoConfig(void);
   // Add deprecated attribute so that the compiler shows a warning
   __attribute__((deprecated)) void setThreshholds(uint8_t touch, uint8_t release);
   void setThresholds(uint8_t touch, uint8_t release);

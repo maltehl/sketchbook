@@ -22,8 +22,6 @@
 #include "Adafruit_BMP085.h"
 #include "Adafruit_CCS811.h"
 
-
-
 //Intern
 #include "debugutils.h"
 #include "wifitools.h"
@@ -47,8 +45,10 @@ RtcDS3231 Rtc;
 String response;
 int resultCode;
 
+void callback(char* topic, byte* payload, unsigned int length);
+
 WiFiClient client;
-PubSubClient mqttClient(client);
+PubSubClient mqttClient(speak_server,1883,callback,client);
 
 int cmpfunc (const void * a, const void * b)
 {
@@ -167,10 +167,6 @@ void setup() {
 
 int value = 0;
 
-
-
-
-
 void loop() {
   //delay(50000);
   char status;
@@ -193,21 +189,23 @@ void loop() {
   StaticJsonBuffer<900> jsonBuffer2;
   JsonObject& root = jsonBuffer.createObject();
   JsonObject& sensors = jsonBuffer2.createObject();
-  mqttClient.setServer(speak_server, 1883);
-  mqttClient.setCallback(callback);
+  //mqttClient.setServer(speak_server, 1883);
+  //mqttClient.setCallback(callback);
   
   
   while (!mqttClient.connected()) {
-	if (mqttClient.connect("sensor_1")) 
+	if (mqttClient.connect(mqtt_topic)) 
 	{
       Serial.println("connected");
       // Once connected, publish an announcement...
       sprintf(TotalTopic,"%s/%s",mqtt_topic,"state");
       mqttClient.publish(TotalTopic,"hello world");
       // ... and resubscribe
-      sprintf(TotalTopic,"%s/%s","Delay","delay");
+      sprintf(TotalTopic,"%s/%s","Delay","delay/#");
       Serial.println(TotalTopic);
       mqttClient.subscribe(TotalTopic);
+      mqttClient.loop();
+      mqttClient.loop();
     } 
 	else 
 	{
@@ -337,7 +335,7 @@ void loop() {
 	  LightSensor["LUX"] = tsl.calculateLux(full, ir);
   }
 
-  if(cap_init ==true)
+  if(cap_init ==true && cap.finishedAutoConfig())
   {
 	  char ProbeCount = 10;
 

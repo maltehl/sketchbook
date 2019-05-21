@@ -61,7 +61,8 @@ boolean Adafruit_MPR121::begin(uint8_t i2caddr, uint8_t  SDA, uint8_t  SCL) {
   writeRegister(MPR121_CONFIG2, 0x20); // 0.5uS encoding, 1ms period
  
  // writeRegister(MPR121_AUTOCONFIG0, 0x7F); // only C0 // 10 Samples; 8 Retry //01|11|11|11 - 10Samples
-  writeRegister(MPR121_AUTOCONFIG0, 0x8F); // Default // 18 Samples; no Retry
+ // writeRegister(MPR121_AUTOCONFIG0, 0x8F); // Default // 18 Samples; no Retry
+  writeRegister(MPR121_AUTOCONFIG0, 0x7F); // Default // 18 Samples; no Retry //01|11|11|11 -10 Samples -8 Retry on Failure -Baseline change -Enable AutoConfig and AutoReConfig
  //11 ->AFES 34 samples
  //11 -> RETRY 8 times
  //11 -> BVA  Baseline is set to the AUTO-CONFIG baselinevalue
@@ -136,6 +137,27 @@ uint16_t Adafruit_MPR121::readRegister16(uint8_t reg) {
     return v;
 }
 
+
+uint16_t Adafruit_MPR121::finishedAutoConfig(void) {
+    uint8_t reg1 = readRegister8(MPR121_OUTOFRANGE_1);
+	uint8_t reg2 = readRegister8(MPR121_OUTOFRANGE_2);
+	
+	Serial.print("\t 1=");
+	Serial.print(reg1, HEX);
+	Serial.print("\t 2=");
+	Serial.print(reg2, HEX);
+	
+	if(reg1 == 0 && (reg2 & 0b00011111) == 0)
+	{
+		Serial.print("Return True (1)");
+		return 1;
+	}
+	Serial.print("Return False (0)");
+    return 0;
+}
+
+
+
 /**************************************************************************/
 /*!
     @brief  Writes 8-bits to the specified destination register
@@ -155,12 +177,6 @@ float  Adafruit_MPR121::getCapacity(int id) {
   uint8_t T = readRegister8(MPR121_CHARGETIME_0 + (id/2));
   uint8_t I = readRegister8(MPR121_CHARGECURR_0 + id);
  
-  /*Serial.print("id = ");
-  Serial.print(id);
-  Serial.print("\t T=");
-  Serial.print(T , HEX);
-  Serial.print("\t I=");
-  Serial.print(I , HEX);*/
   if((id+1)%2)
   {
 	T = T & 0b00000111;
@@ -174,18 +190,8 @@ float  Adafruit_MPR121::getCapacity(int id) {
   
   float time = pow(2 , T) / 4.0;
   float current = (float) I;
- /* Serial.print("\t ADC=");
-  Serial.print(ADC, HEX);
-  Serial.print("\t T=");
-  Serial.print(T , HEX);
-  Serial.print("\t I=");
-  Serial.print(I , HEX);
-  Serial.print("\t time=");
-  Serial.print(time);
-  Serial.print("\t current=");
-  Serial.print(current);*/
+ 
   float c = (current * time *1024.0) /(3.3 * (float)ADC);
-  //Serial.print("\t c=");
-  //Serial.println(c);
+
   return c;
 }
