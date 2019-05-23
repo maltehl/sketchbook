@@ -62,13 +62,18 @@ boolean Adafruit_MPR121::begin(uint8_t i2caddr, uint8_t  SDA, uint8_t  SCL) {
  
  // writeRegister(MPR121_AUTOCONFIG0, 0x7F); // only C0 // 10 Samples; 8 Retry //01|11|11|11 - 10Samples
  // writeRegister(MPR121_AUTOCONFIG0, 0x8F); // Default // 18 Samples; no Retry
-  writeRegister(MPR121_AUTOCONFIG0, 0x7F); // Default // 18 Samples; no Retry //01|11|11|11 -10 Samples -8 Retry on Failure -Baseline change -Enable AutoConfig and AutoReConfig
+  //writeRegister(MPR121_AUTOCONFIG0, 0x7F); // Default // 18 Samples; no Retry //01|11|11|11 -10 Samples -8 Retry on Failure -Baseline change -Enable AutoConfig and AutoReConfig
  //11 ->AFES 34 samples
  //11 -> RETRY 8 times
  //11 -> BVA  Baseline is set to the AUTO-CONFIG baselinevalue
  //1  -> ARE Enable Autoreconfig
  //1  -> ACE Enable Autoconfig
- 
+ writeRegister(MPR121_AUTOCONFIG0, 0xE9); // Default // 18 Samples; no Retry //01|11|11|11 -10 Samples -8 Retry on Failure -Baseline change -Enable AutoConfig and AutoReConfig
+ //11 -> AFES 34 samples
+ //10 -> RETRY 4 times
+ //10 -> BVA  Baseline is set to the AUTO-CONFIG baselinevalue 5MSB
+ //0  -> ARE Disable Autoreconfig
+ //1  -> ACE Enable Autoconfig
 
   writeRegister(MPR121_AUTOCONFIG1, 0x00); // only C0
 //  0|XXXX|000 - Autoset and Not Interrupts 
@@ -77,10 +82,10 @@ boolean Adafruit_MPR121::begin(uint8_t i2caddr, uint8_t  SDA, uint8_t  SCL) {
   writeRegister(MPR121_TARGETLIMIT, 182); // should be ~400 (100 shifted)
   writeRegister(MPR121_LOWLIMIT, 131);
   // enable all electrodes
-  writeRegister(MPR121_ECR, 0x8F);  // start with first 5 bits of baseline tracking No proximity detection
+  writeRegister(MPR121_ECR, 0xCF);  // start with first 5 bits of baseline tracking No proximity detection
 //  writeRegister(MPR121_ECR, 0xC1);  // start with first 5 bits of baseline tracking All Probes enable
 //10 = CL -> BaselineTracking
-//00= ELEPROX -> Proximity detection diable
+//00= ELEPROX -> Proximity detection disable
 //11xx = Run Mode ELE0-11 Measurement enable
   
 

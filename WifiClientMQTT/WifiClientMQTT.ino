@@ -352,7 +352,7 @@ void loop() {
 			int count = 0;
 			for(i=0;i<10;i++)
 			{
-				delay(10);
+				delay(50);
 				for(j=0;j<ProbeCount;j++)
 				{
 					C[j] += cap.getCapacity(j);
