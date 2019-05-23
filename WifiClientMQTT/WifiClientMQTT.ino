@@ -15,7 +15,7 @@
 #include <RtcDS3231.h>
 
 //Sensoren
-#include "Adafruit_TSL2561_U.h"
+#include "TSL2561.h"
 //#include "SFE_BMP180.h"
 #include "SI7021.h"
 #include "Adafruit_MPR121.h"
@@ -91,7 +91,7 @@ int pressure_init = false;
 int luftfeuchte_init = false;
 int light_init = false;
 
-Adafruit_TSL2561_Unified tsl(TSL2561_ADDR_FLOAT);        //0x39
+TSL2561 tsl(TSL2561_ADDR_FLOAT);        //0x39
 Adafruit_BMP085 pressure;               //0x77
 SI7021 sensorLuftfeuchte;               //0x40
 Adafruit_MPR121 cap = Adafruit_MPR121();//0x5A
@@ -148,8 +148,8 @@ void setup() {
   }
   else
   {
-    tsl.enableAutoRange(true);
-    //tsl.setTiming(TSL2561_INTEGRATIONTIME_402MS); 
+    tsl.setGain(TSL2561_GAIN_16X);      // set 16x gain (for dim situations)
+    tsl.setTiming(TSL2561_INTEGRATIONTIME_402MS); 
     light_init = true;
   }
   
@@ -214,7 +214,7 @@ void loop() {
       Serial.print(mqttClient.state());
       Serial.println(" try again in 5 seconds");
       // Wait 5 seconds before retrying
-      GoToSleep(uiWakenterval);
+      delay(5000);
     }
   }
   
@@ -284,26 +284,28 @@ void loop() {
 	  HumiditySensor["Humidity"] = ((float)dataLuft.humidityBasisPoints)/100;
     if(ccs_init == true)
     {
-      unsigned long StartTime = millis();
       DEBUG_PRINT("Set CCS Temp by extern sensor");
-      while(!ccs.available() && (millis() - StartTime)<4000);
+      while(!ccs.available());
       float temp = ((float)dataLuft.celsiusHundredths)/100;
       uint8_t humidity = dataLuft.humidityBasisPoints/100;
+      DEBUG_PRINT(temp);
+      DEBUG_PRINT("<Temp Hum>");
+      DEBUG_PRINT(humidity);
+
       ccs.setEnvironmentalData(humidity,temp);
     }
   }
 
   if(ccs_init==true)
   {
-    unsigned long StartTime = millis();
-    while(!ccs.available()&& (millis() - StartTime)<4000);
+    while(!ccs.available());
     DEBUG_PRINT("Read Data CO2 ");
     JsonObject& COSensor = sensors.createNestedObject("CCS811");
-    
+    unsigned long StartTime = millis();
     
     if(!ccs.readData())
     {
-      while(ccs.getTVOC() == 0 && ccs.geteCO2() == 400 && ((millis() - StartTime)<4000) ){
+      while(ccs.getTVOC() == 0 && ccs.geteCO2() == 400 && ((StartTime - millis())<4000) ){
         delay(250);
         ccs.readData();
         DEBUG_PRINT(".");
@@ -323,10 +325,10 @@ void loop() {
   if(light_init == true)
   {
 	  uint32_t lum = tsl.getFullLuminosity();
-	  uint16_t broadband, ir, full;
+	  uint16_t ir, full;
 	  ir = lum >> 16;
 	  full = lum & 0xFFFF;
-	  tsl.getLuminosity(&broadband,&ir);
+	  delay(400);
 	  JsonObject& LightSensor = sensors.createNestedObject("TSL2561");
 	  LightSensor["Infrared"] = ir;
 	  LightSensor["Full"] = full;
@@ -388,7 +390,7 @@ void loop() {
 		  Serial.print(mqttClient.state());
 		  Serial.println(" try again in 5 seconds");
 		  // Wait 5 seconds before retrying
-		  GoToSleep(uiWakenterval);
+		  delay(5000);
 		}
 	  }
   }
