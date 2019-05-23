@@ -148,7 +148,7 @@ void setup() {
   }
   else
   {
-    tsl.setGain(TSL2561_GAIN_16X);      // set 16x gain (for dim situations)
+    tsl.setGain(TSL2561_GAIN_0X);      // set 16x gain (for dim situations)
     tsl.setTiming(TSL2561_INTEGRATIONTIME_402MS); 
     light_init = true;
   }
@@ -214,7 +214,7 @@ void loop() {
       Serial.print(mqttClient.state());
       Serial.println(" try again in 5 seconds");
       // Wait 5 seconds before retrying
-      delay(5000);
+      GoToSleep(uiWakenterval);
     }
   }
   
@@ -284,13 +284,12 @@ void loop() {
 	  HumiditySensor["Humidity"] = ((float)dataLuft.humidityBasisPoints)/100;
     if(ccs_init == true)
     {
+      unsigned long StartTime = millis();
       DEBUG_PRINT("Set CCS Temp by extern sensor");
-      while(!ccs.available());
+      while(!ccs.available() && (millis() - StartTime)<4000);
       float temp = ((float)dataLuft.celsiusHundredths)/100;
       uint8_t humidity = dataLuft.humidityBasisPoints/100;
-      DEBUG_PRINT(temp);
-      DEBUG_PRINT("<Temp Hum>");
-      DEBUG_PRINT(humidity);
+      
 
       ccs.setEnvironmentalData(humidity,temp);
     }
@@ -298,14 +297,14 @@ void loop() {
 
   if(ccs_init==true)
   {
-    while(!ccs.available());
+    unsigned long StartTime = millis();
+    while(!ccs.available()&& (millis() - StartTime)<4000);
     DEBUG_PRINT("Read Data CO2 ");
     JsonObject& COSensor = sensors.createNestedObject("CCS811");
-    unsigned long StartTime = millis();
-    
+   
     if(!ccs.readData())
     {
-      while(ccs.getTVOC() == 0 && ccs.geteCO2() == 400 && ((StartTime - millis())<4000) ){
+      while(ccs.getTVOC() == 0 && ccs.geteCO2() == 400 && (millis() - StartTime)<4000 ){
         delay(250);
         ccs.readData();
         DEBUG_PRINT(".");
@@ -390,7 +389,7 @@ void loop() {
 		  Serial.print(mqttClient.state());
 		  Serial.println(" try again in 5 seconds");
 		  // Wait 5 seconds before retrying
-		  delay(5000);
+		  GoToSleep(uiWakenterval);
 		}
 	  }
   }
