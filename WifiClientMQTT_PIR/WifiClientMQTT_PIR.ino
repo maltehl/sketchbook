@@ -101,58 +101,11 @@ Adafruit_CCS811 ccs;                    //0x5B -> PIN ADDR set to HIGH!!
 void setup() {
   INIT_DEBUG_PRINT();
 
-  Wire.begin(0,2) ;
-  Wire.setClockStretchLimit(1000);
-  Rtc.Begin();//D1,D2);
+  
   
   DEBUG_PRINT("Start Wifi");
 
   
-  if(!ccs.begin(0x5B)){
-    DEBUG_PRINT("CCS811 not found, check wiring?");
-    ccs_init = false;
-  }
-  else
-  {
-    ccs_init = true;
-  }
-  if (!cap.begin(0x5A)) {
-    DEBUG_PRINT("MPR121 not found, check wiring?");
-  cap_init = false;
-  }
-  else
- {
-  cap_init = true;
- }
- 
-   if(pressure.begin()==false)
-  {
-    pressure_init = false;
-  }
-  else
-  {
-    pressure_init = true;
-  }
-  
-  if(sensorLuftfeuchte.begin(0,2)==false)
-  {
-    luftfeuchte_init = false;
-  }
-  else
-  {
-    luftfeuchte_init = true;
-  }
-  
-  if(tsl.begin() == false)
-  {
-    light_init = false;
-  }
-  else
-  {
-    tsl.setGain(TSL2561_GAIN_0X);      // set 16x gain (for dim situations)
-    tsl.setTiming(TSL2561_INTEGRATIONTIME_402MS); 
-    light_init = true;
-  }
   
   if(0==setupWifi())
   {
@@ -261,125 +214,10 @@ void loop() {
 
   //delay(100);
   sensors["state"] = "OK";
-   
-  if(pressure_init == true)
-  {  	
-	  P = pressure.readPressure();
-	  T = pressure.readTemperature();
+  JsonObject& PIRSensor = sensors.createNestedObject("PIR");
 
-	 
-	  JsonObject& PressureSensor = sensors.createNestedObject("BMP180");
-	  String value, value2;
-	  value += T;
-	  PressureSensor["Temperature"] = value;
-	  value2 += P;
-	  PressureSensor["Pressure"] = value2;
-  }
-  
-  if(luftfeuchte_init == true)
-  {
-	  si7021_env dataLuft;
-	  dataLuft = sensorLuftfeuchte.getHumidityAndTemperature();
-	  
-	  JsonObject& HumiditySensor = sensors.createNestedObject("SI7021");
-	  HumiditySensor["Temperature"] = ((float)dataLuft.celsiusHundredths)/100;
-	  HumiditySensor["Humidity"] = ((float)dataLuft.humidityBasisPoints)/100;
-    if(ccs_init == true)
-    {
-      unsigned long StartTime = millis();
-      DEBUG_PRINT("Set CCS Temp by extern sensor");
-      while(!ccs.available() && (millis() - StartTime)<4000);
-      float temp = ((float)dataLuft.celsiusHundredths)/100;
-      uint8_t humidity = dataLuft.humidityBasisPoints/100;
-      
+    PIRSensor["Motion"] = "ON";
 
-      ccs.setEnvironmentalData(humidity,temp);
-    }
-  }
-
-  if(ccs_init==true)
-  {
-    unsigned long StartTime = millis();
-    while(!ccs.available()&& (millis() - StartTime)<4000);
-    DEBUG_PRINT("Read Data CO2 ");
-    JsonObject& COSensor = sensors.createNestedObject("CCS811");
-   
-    if(!ccs.readData())
-    {
-      while(ccs.getTVOC() == 0 && ccs.getTVOC() >4000 && ccs.geteCO2() == 400 && (millis() - StartTime)<4000 ){
-        delay(250);
-        ccs.readData();
-        DEBUG_PRINT(".");
-        
-      }
-      if((millis() - StartTime)<4000)
-      {
-        COSensor["CO2"] = ccs.geteCO2();
-        DEBUG_PRINT(ccs.geteCO2());
-        DEBUG_PRINT("Read Data TVOC");
-        COSensor["TVOC"] = ccs.getTVOC();
-        DEBUG_PRINT(ccs.getTVOC());
-      }
-    }
-    else{
-      DEBUG_PRINT("Read CCS811 Error ");
-    }
-  }
-  
-  if(light_init == true)
-  {
-	  uint32_t lum = tsl.getFullLuminosity();
-	  uint16_t ir, full;
-	  ir = lum >> 16;
-	  full = lum & 0xFFFF;
-	  delay(400);
-	  JsonObject& LightSensor = sensors.createNestedObject("TSL2561");
-	  LightSensor["Infrared"] = ir;
-	  LightSensor["Full"] = full;
-	  LightSensor["Visible"] = (full - ir);
-	  LightSensor["LUX"] = tsl.calculateLux(full, ir);
-  }
-
-  if(cap_init ==true && cap.finishedAutoConfig())
-  {
-	  char ProbeCount = 10;
-
-	  JsonObject& CapSensor = sensors.createNestedObject("MPR121");
-	  //Bodenfeuchte messen
-	  {
-		 int j;
-		   for(j=0;j<ProbeCount;j++)
-		   {
-				C[j] = 0.0;
-		   }
-		   DEBUG_PRINT("cap");
-		   
-			int i;
-			int count = 0;
-			for(i=0;i<10;i++)
-			{
-				delay(50);
-				for(j=0;j<ProbeCount;j++)
-				{
-					C[j] += cap.getCapacity(j);
-				}
-				count ++;
-			}
-			for(j=0;j<ProbeCount;j++)
-			{
-				float value = C[j] / count;
-				C[j] = value;
-			}
-			for(j=0;j<ProbeCount;j++)
-			{
-				String VName = "Probe";
-        char value[10];
-        dtostrf(C[j], 4, 3, value);
-        //sprintf(value,"%2.3f",C[j]);
-				VName += j;
-				CapSensor[VName] = value; 
-			}
-	  }
 
 	  while (!mqttClient.connected()) {
       
@@ -405,7 +243,7 @@ void loop() {
 		  //GoToSleep(uiWakenterval);
 		}
 	  }
-  }
+  
   char JsonString[500];
   sensors.printTo(JsonString,sizeof(JsonString));
   Serial.print(JsonString);

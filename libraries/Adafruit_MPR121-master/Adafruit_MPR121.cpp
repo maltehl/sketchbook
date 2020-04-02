@@ -154,10 +154,10 @@ uint16_t Adafruit_MPR121::finishedAutoConfig(void) {
 	
 	if(reg1 == 0 && (reg2 & 0b00011111) == 0)
 	{
-		Serial.print("Return True (1)");
+		//Serial.print("Return True (1)");
 		return 1;
 	}
-	Serial.print("Return False (0)");
+	//Serial.print("Return False (0)");
     return 0;
 }
 
@@ -194,12 +194,12 @@ float  Adafruit_MPR121::getCapacity(int id) {
   }
   I = I & 0b00111111;
   
-  Serial.print("ID: ");
+ /* Serial.print("ID: ");
   Serial.print(id);
   Serial.print("; I: ");
   Serial.print(I,HEX);
   Serial.print("; T: ");
-  Serial.println(T,HEX);
+  Serial.println(T,HEX);*/
   T = 0x01;
   I = 0x0A;
   
