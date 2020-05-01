@@ -215,7 +215,7 @@ void loop() {
   url += "&field3=";
   url += analogRead(35) * 2;
   url += "&field4=";
-  url += "0";
+  url += touchRead(12);
   url += "&field5=";
   url += "0";
   url += "&field6=";
