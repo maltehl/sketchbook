@@ -179,9 +179,15 @@ float  Adafruit_MPR121::getCapacity(int id) {
 //ADC low ist 217 -- 0,7V / 3,3V * 1024
 //ADC high ist 806  -- 2,3V / 3,3V * 1024
   uint16_t ADC = filteredData(id);
-  uint8_t T = readRegister8(MPR121_CHARGETIME_0 + (id/2));
-  uint8_t I = readRegister8(MPR121_CHARGECURR_0 + id);
+  uint8_t T = readRegister8(MPR121_CHARGETIME_0);// + (id/2));
+  uint8_t I = readRegister8(MPR121_CHARGECURR_0);// + id);
   
+ /* Serial.print("ADC: ");
+  Serial.print(ADC);
+  Serial.print("; I: ");
+  Serial.print(I);
+  Serial.print("; T: ");
+  Serial.println(T);*/
   
   if((id+1)%2)
   {
@@ -194,7 +200,7 @@ float  Adafruit_MPR121::getCapacity(int id) {
   }
   I = I & 0b00111111;
   
- /* Serial.print("ID: ");
+  /*Serial.print("ID: ");
   Serial.print(id);
   Serial.print("; I: ");
   Serial.print(I,HEX);

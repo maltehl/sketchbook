@@ -38,9 +38,7 @@ void setup() {
   
 void loop() {
     
-    Serial.print("Pressure = ");
-    Serial.print(bmp.readPressure()- one);
-    Serial.println(" Pa");
+    Serial.println(bmp.readPressure()- one);
 
     
     Serial.println();
