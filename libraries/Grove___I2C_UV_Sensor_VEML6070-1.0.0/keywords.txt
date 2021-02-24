@@ -1,0 +1,24 @@
+  
+#######################################
+# Syntax Coloring Map For Grove UV sensor VEML6070
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+KEYWORD1    VEML6070
+
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+KEYWORD2    init
+KEYWORD2    read_step
+KEYWORD2    set_interrupt
+KEYWORD2    set_cmd_reg
+KEYWORD2    clear_ack
+KEYWORD2    convert_to_risk_level
+
+#######################################
+# Constants (LITERAL1)
+#######################################
