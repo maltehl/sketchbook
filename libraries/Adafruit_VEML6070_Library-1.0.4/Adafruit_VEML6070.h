@@ -22,7 +22,7 @@
 #else
 #include "WProgram.h"
 #endif
-#include "SoftWire.h"
+#include "Wire.h"
 
 // really unusual way of getting data, your read from two different addrs!
 
@@ -53,7 +53,7 @@ class Adafruit_VEML6070 {
 public:
   Adafruit_VEML6070();
 
-  void begin(veml6070_integrationtime_t itime, SoftWire *twoWire);
+  void begin(veml6070_integrationtime_t itime, TwoWire *twoWire = &Wire);
   void setInterrupt(bool state, bool level = 0);
   bool clearAck();
   uint16_t readUV(void);
@@ -62,7 +62,7 @@ public:
 
 private:
   void writeCommand(void);
-  SoftWire *_i2c;
+  TwoWire *_i2c;
 
   typedef union {
     struct {

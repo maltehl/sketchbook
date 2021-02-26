@@ -33,7 +33,7 @@
 #else
 #include "WProgram.h"
 #endif
-#include "SoftWire.h"
+#include "Wire.h"
 
 #include "Adafruit_VEML6070.h"
 
@@ -56,7 +56,7 @@ Adafruit_VEML6070::Adafruit_VEML6070() {
 */
 /**************************************************************************/
 void Adafruit_VEML6070::begin(veml6070_integrationtime_t itime,
-                              SoftWire *twoWire) {
+                              TwoWire *twoWire) {
   _i2c = twoWire;
 
   _commandRegister.bit.IT = itime;
