@@ -2,8 +2,8 @@
 #include "Adafruit_VEML6070.h"
 
 Adafruit_VEML6070 uv = Adafruit_VEML6070();
-#define SDA_PIN D4
-#define SCL_PIN D5
+#define SDA_PIN D5
+#define SCL_PIN D6
 
 SoftWire myWire(SDA_PIN, SCL_PIN);
 
